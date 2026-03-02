@@ -13,6 +13,7 @@
     let timerInterval = null;
     let isPaused = false;
     let isRunning = false;
+    let hasCurrentMinuteStarted = false;
 
     // звуки
     let tickAudio = null;
@@ -36,7 +37,6 @@
     // ---------- ЗАГРУЗКА И СОХРАНЕНИЕ СОСТОЯНИЯ ----------
     function loadState() {
         try {
-            // Загружаем текущую минуту
             const savedMinute = localStorage.getItem(CURRENT_MINUTE_KEY);
             if (savedMinute) {
                 const parsed = parseInt(savedMinute, 10);
@@ -45,7 +45,6 @@
                 }
             }
 
-            // Загружаем последнюю завершённую минуту
             const savedCompleted = localStorage.getItem(LAST_COMPLETED_KEY);
             if (savedCompleted) {
                 const parsed = parseInt(savedCompleted, 10);
@@ -53,8 +52,8 @@
                     lastCompletedMinute = parsed;
                 }
             }
-
-            console.log(`Загружено: текущая ${currentMinutes}, завершено ${lastCompletedMinute}`);
+            
+            hasCurrentMinuteStarted = false;
         } catch (e) {
             console.warn('Ошибка загрузки состояния', e);
         }
@@ -257,48 +256,47 @@
         }
     }
 
-    // ---------- ЛОГИКА КНОПОК (ОБНОВЛЕНО) ----------
-    // Обновление состояния кнопок
-function updateButtonStates() {
-    const isCompleted = (lastCompletedMinute === currentMinutes);
-    
-    if (isRunning && !isPaused) {
-        // Таймер идёт
-        pauseBtn.disabled = false;
-        pauseBtn.innerText = '⏸ Пауза';
-        startRestartBtn.disabled = true;
-        startRestartBtn.innerText = '▶ Начать';
-        nextBtn.disabled = true;
-        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
-    } 
-    else if (isRunning && isPaused) {
-        // Таймер на паузе
-        pauseBtn.disabled = false;
-        pauseBtn.innerText = '▶ Продолжить';
-        startRestartBtn.disabled = true;
-        startRestartBtn.innerText = '▶ Начать';
-        nextBtn.disabled = false;
-        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
+    // ---------- ОБНОВЛЕНИЕ СОСТОЯНИЯ КНОПОК (ИСПРАВЛЕНО) ----------
+    function updateButtonStates() {
+        const isCompleted = (lastCompletedMinute === currentMinutes);
+        
+        if (isRunning && !isPaused) {
+            // Таймер идёт
+            pauseBtn.disabled = false;
+            pauseBtn.innerText = '⏸ Пауза';
+            startRestartBtn.disabled = false;
+            startRestartBtn.innerText = '↺ Заново';
+            nextBtn.disabled = true;
+            resetBtn.disabled = false;
+        } 
+        else if (isRunning && isPaused) {
+            // Таймер на паузе
+            pauseBtn.disabled = false;
+            pauseBtn.innerText = '▶ Продолжить';
+            startRestartBtn.disabled = false;
+            startRestartBtn.innerText = '↺ Заново';
+            nextBtn.disabled = true;
+            resetBtn.disabled = false;
+        }
+        else if (isCompleted) {
+            // Таймер завершён
+            pauseBtn.disabled = true;
+            pauseBtn.innerText = '⏸ Пауза';
+            startRestartBtn.disabled = false;
+            startRestartBtn.innerText = '↺ Заново';
+            nextBtn.disabled = false;
+            resetBtn.disabled = false;
+        }
+        else {
+            // Таймер не запущен (новая минута)
+            pauseBtn.disabled = true;
+            pauseBtn.innerText = '⏸ Пауза';
+            startRestartBtn.disabled = false;
+            startRestartBtn.innerText = hasCurrentMinuteStarted ? '↺ Заново' : '▶ Начать';
+            nextBtn.disabled = true;
+            resetBtn.disabled = false;
+        }
     }
-    else if (isCompleted) {
-        // Таймер завершён
-        pauseBtn.disabled = true;
-        pauseBtn.innerText = '⏸ Пауза';
-        startRestartBtn.disabled = false;
-        startRestartBtn.innerText = '↺ Заново';
-        nextBtn.disabled = false;
-        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
-    }
-    else {
-        // Таймер не запущен (новая минута)
-        pauseBtn.disabled = true;
-        pauseBtn.innerText = '⏸ Пауза';
-        startRestartBtn.disabled = false;
-        startRestartBtn.innerText = '▶ Начать';
-        nextBtn.disabled = true;
-        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
-    }
-}
 
     // ---------- ОБРАБОТЧИКИ ----------
     pauseBtn.addEventListener('click', () => {
@@ -319,16 +317,29 @@ function updateButtonStates() {
     startRestartBtn.addEventListener('click', () => {
         if (!audioInitialized) initSounds();
         
-        if (lastCompletedMinute === currentMinutes) {
-            // Режим "Заново" - перезапустить завершённую минуту
+        // Отмечаем, что минута была запущена
+        hasCurrentMinuteStarted = true;
+        
+        if (isRunning) {
+            // Если таймер идёт или на паузе - перезапускаем
             stopTimer();
             timeLeftSeconds = currentMinutes * 60;
             isRunning = true;
             isPaused = false;
             updateDisplay();
             startTimerIfNeeded();
-        } else {
-            // Режим "Начать" - запустить новую минуту
+        }
+        else if (lastCompletedMinute === currentMinutes) {
+            // Завершённая минута - перезапускаем
+            stopTimer();
+            timeLeftSeconds = currentMinutes * 60;
+            isRunning = true;
+            isPaused = false;
+            updateDisplay();
+            startTimerIfNeeded();
+        }
+        else if (!isRunning) {
+            // Новая минута - запускаем
             isRunning = true;
             isPaused = false;
             startTimerIfNeeded();
@@ -337,7 +348,7 @@ function updateButtonStates() {
     });
 
     nextBtn.addEventListener('click', () => {
-        if (lastCompletedMinute !== currentMinutes) return; // Нельзя перейти, пока не завершена
+        if (lastCompletedMinute !== currentMinutes) return;
         
         stopTimer();
         if (currentMinutes < MAX_MINUTES) {
@@ -346,7 +357,7 @@ function updateButtonStates() {
         timeLeftSeconds = currentMinutes * 60;
         isRunning = false;
         isPaused = false;
-        // lastCompletedMinute остаётся предыдущей (новая минута не завершена)
+        hasCurrentMinuteStarted = false;
         updateDisplay();
         saveState();
         updateButtonStates();
@@ -355,10 +366,11 @@ function updateButtonStates() {
     resetBtn.addEventListener('click', () => {
         stopTimer();
         currentMinutes = 1;
-        lastCompletedMinute = 0; // Сбрасываем прогресс
+        lastCompletedMinute = 0;
         timeLeftSeconds = 60;
         isRunning = false;
         isPaused = false;
+        hasCurrentMinuteStarted = false;
         updateDisplay();
         saveState();
         updateButtonStates();
@@ -379,6 +391,7 @@ function updateButtonStates() {
         timeLeftSeconds = currentMinutes * 60;
         isRunning = false;
         isPaused = false;
+        hasCurrentMinuteStarted = false;
         updateDisplay();
         updateButtonStates();
         renderStatsPanel();
