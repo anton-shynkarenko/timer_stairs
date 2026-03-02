@@ -1,6 +1,7 @@
 (function() {
     // ----- КОНФИГ
     const STORAGE_KEY = 'focus_ladder_stats';
+    const CURRENT_MINUTE_KEY = 'focus_ladder_current_minute';
     const TICK_INTERVAL = 1000;
     const MAX_MINUTES = 30;
 
@@ -30,6 +31,31 @@
     const totalTimeDisplay = document.getElementById('totalTimeDisplay');
     const totalTimersDisplay = document.getElementById('totalTimersDisplay');
     const lastTimerDisplay = document.getElementById('lastTimerDisplay');
+
+    // ---------- ЗАГРУЗКА И СОХРАНЕНИЕ ТЕКУЩЕЙ МИНУТЫ ----------
+    function loadCurrentMinute() {
+        try {
+            const saved = localStorage.getItem(CURRENT_MINUTE_KEY);
+            if (saved) {
+                const parsed = parseInt(saved, 10);
+                if (!isNaN(parsed) && parsed >= 1 && parsed <= MAX_MINUTES) {
+                    currentMinutes = parsed;
+                    console.log('Загружена минута из localStorage:', currentMinutes);
+                }
+            }
+        } catch (e) {
+            console.warn('Ошибка загрузки текущей минуты', e);
+        }
+    }
+
+    function saveCurrentMinute() {
+        try {
+            localStorage.setItem(CURRENT_MINUTE_KEY, currentMinutes.toString());
+            console.log('Сохранена минута в localStorage:', currentMinutes);
+        } catch (e) {
+            console.warn('Ошибка сохранения текущей минуты', e);
+        }
+    }
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ЗВУКОВ ----------
     function initSounds() {
@@ -153,7 +179,7 @@
         if (finishAudio && typeof finishAudio === 'function') finishAudio();
     }
 
-    // ---------- LOCALSTORAGE ----------
+    // ---------- LOCALSTORAGE ДЛЯ СТАТИСТИКИ ----------
     function getTodayKey() {
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -293,7 +319,7 @@
         } else {
             startBtn.disabled = false;
             pauseBtn.disabled = true;
-            restartBtn.disabled = false; // ❗ теперь «Заново» доступно всегда, когда таймер не идёт
+            restartBtn.disabled = false;
             pauseBtn.innerText = '⏸ Пауза';
         }
     }
@@ -329,19 +355,18 @@
         isPaused = false;
         updateDisplay();
         updateButtonStates();
+        saveCurrentMinute(); // Сохраняем новое значение
     });
 
-    // ✅ «Заново» – перезапускает текущую минуту с нуля (даже если таймер закончился)
     restartBtn.addEventListener('click', () => {
         stopTimer();
         timeLeftSeconds = currentMinutes * 60;
-        isRunning = false;  // не запускаем автоматически
+        isRunning = false;
         isPaused = false;
         updateDisplay();
         updateButtonStates();
     });
 
-    // ✅ «Следующий» – увеличивает минуту и сбрасывает (не запуская)
     nextBtn.addEventListener('click', () => {
         stopTimer();
         if (currentMinutes < MAX_MINUTES) {
@@ -352,6 +377,7 @@
         isPaused = false;
         updateDisplay();
         updateButtonStates();
+        saveCurrentMinute(); // Сохраняем новое значение
     });
 
     statBtn.addEventListener('click', () => {
@@ -365,19 +391,29 @@
 
     // ---------- СТАРТОВАЯ ИНИЦИАЛИЗАЦИЯ ----------
     window.addEventListener('load', () => {
-        currentMinutes = 1;
-        timeLeftSeconds = 60;
+        // Загружаем сохраненную минуту
+        loadCurrentMinute();
+        
+        // Устанавливаем время в соответствии с загруженной минутой
+        timeLeftSeconds = currentMinutes * 60;
+        
         isRunning = false;
         isPaused = false;
         updateDisplay();
         updateButtonStates();
         renderStatsPanel();
+        
+        console.log('Инициализация завершена, текущая минута:', currentMinutes);
+    });
+
+    // Сохраняем минуту перед уходом со страницы
+    window.addEventListener('beforeunload', () => {
+        stopTimer();
+        saveCurrentMinute();
     });
 
     // Активация звуков при первом взаимодействии
     document.body.addEventListener('click', () => {
         if (!audioInitialized) initSounds();
     }, { once: true });
-
-    window.addEventListener('beforeunload', stopTimer);
 })();
