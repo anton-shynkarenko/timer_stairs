@@ -199,7 +199,7 @@
     function updateDisplay() {
         const mins = Math.floor(timeLeftSeconds / 60);
         const secs = timeLeftSeconds % 60;
-        minutesDisplayEl.innerHTML = `${String(mins).padStart(2, '0')}<span> мин</span> ${String(secs).padStart(2, '0')}с`;
+        minutesDisplayEl.innerHTML = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         progressLabelEl.innerText = `${currentMinutes} / 30`;
     }
 
