@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лестница фокуса · Таймер продуктивности</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: linear-gradient(145deg, #1a2f3f 0%, #1d3a4a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 16px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 56px;
+            padding: 32px 24px;
+            box-shadow: 0 25px 50px -8px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+            width: 100%;
+            max-width: 680px;
+            transition: 0.2s;
+        }
+        .timer-block {
+            background: #08232e;
+            border-radius: 48px;
+            padding: 24px 24px 32px;
+            box-shadow: inset 0 6px 8px rgba(0,0,0,0.5), 0 10px 20px rgba(0, 20, 30, 0.7);
+            margin-bottom: 24px;
+            border: 1px solid #3d7e9a;
+        }
+        .stage {
+            text-align: center;
+            color: #b1e6ff;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 1.2rem;
+            text-shadow: 0 2px 5px #00000050;
+        }
+        .minutes-display {
+            font-size: 8rem;
+            font-weight: 800;
+            text-align: center;
+            line-height: 1;
+            color: white;
+            text-shadow: 0 0 20px #5dc9ff, 0 4px 0 #0b3b4e;
+            margin: 16px 0 8px;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 4px;
+        }
+        .minutes-display span {
+            font-size: 2rem;
+            opacity: 0.8;
+            margin-left: 8px;
+            font-weight: 400;
+            text-shadow: none;
+            color: #bbdef5;
+        }
+        .progress-tag {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: #d6edff;
+            background: #1d4b5e80;
+            padding: 8px 16px;
+            border-radius: 60px;
+            display: inline-block;
+            margin: 0 auto 16px;
+            backdrop-filter: blur(4px);
+            border: 1px solid #73b9d4;
+        }
+        .button-panel {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 28px 0 12px;
+        }
+        .btn {
+            background: #eaf2f7;
+            border: none;
+            border-radius: 60px;
+            padding: 14px 22px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.3px;
+            color: #0a2a36;
+            box-shadow: 0 8px 0 #768a96, 0 8px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: 0.08s linear;
+            flex: 0 1 auto;
+            min-width: 100px;
+            border: 1px solid white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #5f707c, 0 5px 10px black;
+        }
+        .btn.pause {
+            background: #ffe3b0;
+            box-shadow: 0 8px 0 #b6895e;
+        }
+        .btn.reset {
+            background: #d3dee7;
+        }
+        .btn.next {
+            background: #b9edc7;
+            box-shadow: 0 8px 0 #58966b;
+        }
+        .btn.stat {
+            background: #cbc0fa;
+            box-shadow: 0 8px 0 #7465a3;
+        }
+        .stat-grid {
+            background: #07212b;
+            border-radius: 40px;
+            padding: 20px 18px;
+            color: #e2f0f5;
+            box-shadow: inset 0 0 0 1px #3d809b;
+            margin-top: 16px;
+            border: 1px solid #8fc9e3;
+        }
+        .stat-header {
+            display: flex;
+            gap: 15px;
+            justify-content: space-between;
+            align-items: baseline;
+            font-weight: 600;
+            font-size: 1.2rem;
+            padding-bottom: 12px;
+            border-bottom: 2px dashed #41829e;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 14px;
+            font-size: 1.1rem;
+            background: #0f323f;
+            padding: 12px 18px;
+            border-radius: 50px;
+            align-items: center;
+        }
+        .stat-row span:first-child {
+            opacity: 0.8;
+        }
+        .stat-row span:last-child {
+            font-weight: 700;
+            background: #091e26;
+            padding: 5px 20px;
+            border-radius: 40px;
+            font-size: 1.3rem;
+            color: #fffaae;
+        }
+        .date-badge {
+            background: #124f63;
+            padding: 4px 20px;
+            border-radius: 40px;
+            font-size: 1rem;
+            color: white;
+        }
+        .small-note {
+            font-size: 0.9rem;
+            text-align: right;
+            opacity: 0.7;
+            margin-top: 8px;
+        }
+        footer {
+            color: #a0c9db;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .error-sound-msg {
+            background: #a13d3d60;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="timer-block">
+        <div class="stage">🌀 ступень концентрации</div>
+        <div class="minutes-display" id="minutesDisplay">01 <span>мин</span></div>
+        <div style="display: flex; justify-content: center;">
+            <div class="progress-tag" id="progressLabel">1 / 30</div>
+        </div>
+        <div class="button-panel">
+            <button class="btn reset" id="resetBtn" title="Сбросить до 1 минуты">↺ Сброс</button>
+            <button class="btn pause" id="pauseBtn">⏸ Пауза</button>
+            <button class="btn" id="restartBtn" title="Перезапустить текущий таймер">🔄 Заново</button>
+            <button class="btn next" id="nextBtn">▶ Следующий</button>
+            <button class="btn stat" id="statBtn">📊 Статистика</button>
+        </div>
+    </div>
+
+    <!-- Блок статистики (появляется по кнопке) -->
+    <div class="stat-grid" id="statsPanel" style="display: none;">
+        <div class="stat-header">
+            <span>📆 статистика за сегодня</span>
+            <span class="date-badge" id="todayDate"></span>
+        </div>
+        <div class="stat-row">
+            <span>⏳ всего времени</span>
+            <span id="totalTimeDisplay">0 мин</span>
+        </div>
+        <div class="stat-row">
+            <span>🍅 таймеров завершено</span>
+            <span id="totalTimersDisplay">0</span>
+        </div>
+        <div class="stat-row">
+            <span>🔝 последний таймер</span>
+            <span id="lastTimerDisplay">—</span>
+        </div>
+        <div class="small-note">⚡ обновляется после окончания / переходу</div>
+    </div>
+    <footer>🔊 тиканье · звук финиша</footer>
+</div>
+
+<script>
+    (function() {
+        // ----- КОНФИГ
+        const STORAGE_KEY = 'focus_ladder_stats';
+        const TICK_INTERVAL = 1000; // 1 сек
+        const MAX_MINUTES = 30;
+
+        // ----- СОСТОЯНИЕ
+        let currentMinutes = 1;              // стартуем с 1
+        let timeLeftSeconds = currentMinutes * 60; // оставшиеся секунды
+        let timerInterval = null;
+        let isPaused = false;
+        let isRunning = false;                // false если остановлен (не пауза)
+
+        // звуки
+        let tickAudio = null;
+        let finishAudio = null;
+
+        // DOM элементы
+        const minutesDisplayEl = document.getElementById('minutesDisplay');
+        const progressLabelEl = document.getElementById('progressLabel');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const statBtn = document.getElementById('statBtn');
+        const statsPanel = document.getElementById('statsPanel');
+        const todayDateSpan = document.getElementById('todayDate');
+        const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+        const totalTimersDisplay = document.getElementById('totalTimersDisplay');
+        const lastTimerDisplay = document.getElementById('lastTimerDisplay');
+
+        // ---------- ИНИЦИАЛИЗАЦИЯ ЗВУКОВ (тихо, без автостарта) ----------
+        function initSounds() {
+            try {
+                // тиканье – короткий цикл (используем AudioContext, если надо, но проще Audio)
+                // чтобы точно работало без жестов, создаем при первом взаимодействии. Но подготовим объекты.
+                tickAudio = new Audio();
+                tickAudio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA=='; // очень короткий тик
+                tickAudio.volume = 0.25;
+
+                finishAudio = new Audio();
+                finishAudio.src = 'data:audio/wav;base64,UklGRqQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YXAAAABAQEAAPz8/QUFBRERERISEhIXFxcZGRkcHBwfHx8iIiIlJSUpKSktLS0xMTE2NjY7OztBQUFHR0dNTU1UVFRbW1tjY2tsbGx2dnZ/f3+JiYmTk5OcnJympqavr6+4uLjBwcHKysrT09Pb29vk5OTs7Oz09PT8/Pz8/PT07Ozs5OTk29vb09PTy8vLwsLCubm5sbGxqKion5+fl5eXj4+Ph4eHe3t7c3Nza2trZGRkXV1dVVVVTU1NRUVFPT09OTk5Nzc3MjIyLS0tKSkpJSUlISEhHh4eHBwcGRkZFhYWEhISDw8PCwsLBwcHAwMDAQI='; // простой сигнал
+                finishAudio.volume = 0.5;
+            } catch (e) {
+                console.warn('Аудио не поддерживается', e);
+            }
+        }
+
+        // играть тик (с проверкой)
+        function playTick() {
+            if (tickAudio) {
+                tickAudio.currentTime = 0;
+                tickAudio.play().catch(e => { /* игнорируем если нельзя */ });
+            }
+        }
+
+        function playFinish() {
+            if (finishAudio) {
+                finishAudio.currentTime = 0;
+                finishAudio.play().catch(e => console.log('звук финиша заблокирован браузером'));
+            }
+        }
+
+        // ---------- РАБОТА С LOCALSTORAGE ----------
+        function getTodayKey() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        }
+
+        function loadStats() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    return {};
+                }
+            }
+            return {};
+        }
+
+        function saveStats(stats) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+        }
+
+        function getTodayStats() {
+            const stats = loadStats();
+            const key = getTodayKey();
+            if (!stats[key]) {
+                stats[key] = {
+                    totalSeconds: 0,     // отработанные секунды (завершённые таймеры)
+                    timersCompleted: 0,
+                    lastTimerMinutes: 0,  // последний таймер (минуты)
+                };
+            }
+            return { stats, key, todayData: stats[key] };
+        }
+
+        // Обновить статистику: добавить завершённый таймер длиной minutes
+        function addCompletedTimer(minutes) {
+            const { stats, key, todayData } = getTodayStats();
+            todayData.totalSeconds = (todayData.totalSeconds || 0) + minutes * 60;
+            todayData.timersCompleted = (todayData.timersCompleted || 0) + 1;
+            todayData.lastTimerMinutes = minutes;
+            saveStats(stats);
+            renderStatsPanel();
+        }
+
+        // Сбросить статистику нельзя (просто перезаписывается), но для чистоты можем не трогать.
+        function renderStatsPanel() {
+            const { todayData } = getTodayStats();
+            const totalSec = todayData.totalSeconds || 0;
+            const hours = Math.floor(totalSec / 3600);
+            const mins = Math.floor((totalSec % 3600) / 60);
+            let timeStr = '';
+            if (hours > 0) timeStr += `${hours}ч `;
+            timeStr += `${mins}мин`;
+
+            totalTimeDisplay.innerText = timeStr || '0мин';
+            totalTimersDisplay.innerText = todayData.timersCompleted || 0;
+            const last = todayData.lastTimerMinutes;
+            lastTimerDisplay.innerText = last ? `${last} мин` : '—';
+            todayDateSpan.innerText = getTodayKey();
+        }
+
+        // ---------- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ----------
+        function updateDisplay() {
+            const mins = Math.floor(timeLeftSeconds / 60);
+            const secs = timeLeftSeconds % 60;
+            minutesDisplayEl.innerHTML = `${String(mins).padStart(2, '0')}<span> мин</span> ${String(secs).padStart(2, '0')}с`;
+            progressLabelEl.innerText = `${currentMinutes} / 30`;
+        }
+
+        // Завершение таймера (звук, логика)
+        function finishTimer() {
+            playFinish();
+
+            // записываем завершённый таймер в статистику
+            addCompletedTimer(currentMinutes);
+
+            // автоматический переход на следующий, если не 30
+            if (currentMinutes < MAX_MINUTES) {
+                currentMinutes++;
+                resetTimerToCurrent(/* restartAfterFinish = true */);
+            } else {
+                // если дошли до 30 — просто сброс на 1? но по логике автоперехода нет, остановим.
+                stopTimer();
+                timeLeftSeconds = currentMinutes * 60;
+                isRunning = false;
+                isPaused = false;
+                pauseBtn.innerText = '⏸ Пауза';
+                updateDisplay();
+            }
+        }
+
+        // ТИК таймера
+        function tick() {
+            if (!isRunning || isPaused) return;
+
+            if (timeLeftSeconds <= 0) {
+                // время вышло
+                finishTimer();
+            } else {
+                timeLeftSeconds--;
+                playTick();             // тиканье каждую секунду
+                updateDisplay();
+            }
+        }
+
+        // СТАРТ (запускает интервал, если ещё не запущен)
+        function startTimerIfNeeded() {
+            if (!timerInterval) {
+                timerInterval = setInterval(tick, TICK_INTERVAL);
+            }
+        }
+
+        // Остановить интервал (но не сбрасывать флаги)
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        // Сбросить таймер до текущей минуты (currentMinutes) и запустить
+        function resetTimerToCurrent(autoplay = true) {
+            stopTimer();
+            timeLeftSeconds = currentMinutes * 60;
+            isPaused = false;
+            isRunning = autoplay;  // если автоплей то запускаем
+            pauseBtn.innerText = '⏸ Пауза';
+            updateDisplay();
+            if (autoplay) {
+                startTimerIfNeeded();
+            }
+        }
+
+        // Принудительно обновить кнопку паузы
+        function updatePauseButton() {
+            pauseBtn.innerText = isPaused ? '▶ Продолжить' : '⏸ Пауза';
+        }
+
+        // ---------- ОБРАБОТЧИКИ ----------
+        // пауза/продолжить
+        pauseBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                // если таймер стоял (не на паузе, а именно остановлен) — запускаем как сброс?
+                // сделаем запуск текущего значения.
+                isRunning = true;
+                isPaused = false;
+                startTimerIfNeeded();
+                updateDisplay();
+                updatePauseButton();
+                return;
+            }
+
+            if (isPaused) {
+                // продолжить
+                isPaused = false;
+                startTimerIfNeeded(); // интервал точно есть, но на всякий случай
+            } else {
+                // поставить на паузу
+                isPaused = true;
+                stopTimer(); // останавливаем интервал, чтобы не тикал впустую
+                timerInterval = null; // пересоздадим при надобности
+            }
+            updatePauseButton();
+        });
+
+        // Сброс (до 1 минуты)
+        resetBtn.addEventListener('click', () => {
+            stopTimer();
+            currentMinutes = 1;
+            timeLeftSeconds = 60;
+            isRunning = true;      // автоматом запускаем
+            isPaused = false;
+            pauseBtn.innerText = '⏸ Пауза';
+            updateDisplay();
+            startTimerIfNeeded();
+        });
+
+        // Заново (перезапуск текущего таймера)
+        restartBtn.addEventListener('click', () => {
+            stopTimer();
+            timeLeftSeconds = currentMinutes * 60;
+            isRunning = true;
+            isPaused = false;
+            pauseBtn.innerText = '⏸ Пауза';
+            updateDisplay();
+            startTimerIfNeeded();
+        });
+
+        // Следующий: увеличиваем на 1 (до 30) и стартуем
+        nextBtn.addEventListener('click', () => {
+            if (currentMinutes < MAX_MINUTES) {
+                currentMinutes++;
+            } else {
+                // если уже 30, остаёмся на 30, но можно сбросить? Лучше оставить 30.
+                // ничего не делаем дополнительно
+            }
+            stopTimer();
+            timeLeftSeconds = currentMinutes * 60;
+            isRunning = true;
+            isPaused = false;
+            pauseBtn.innerText = '⏸ Пауза';
+            updateDisplay();
+            startTimerIfNeeded();
+        });
+
+        // Показать/скрыть статистику
+        statBtn.addEventListener('click', () => {
+            if (statsPanel.style.display === 'none') {
+                renderStatsPanel();
+                statsPanel.style.display = 'block';
+            } else {
+                statsPanel.style.display = 'none';
+            }
+        });
+
+        // инициализация при загрузке
+        updateDisplay();
+        initSounds();
+
+        // Чтобы звуки работали после первого клика (из-за политик автовоспроизведения)
+        function enableAudioOnFirstInteraction() {
+            // просто создадим пустую и сыграем/остановим, чтобы контекст разрешился
+            const silentTick = new Audio();
+            silentTick.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+            silentTick.volume = 0.01;
+            silentTick.play().then(() => { silentTick.pause(); }).catch(() => {});
+            // и настоящие тоже готовы
+        }
+
+        document.body.addEventListener('click', enableAudioOnFirstInteraction, { once: true });
+
+        // старт по умолчанию при открытии страницы (чтобы таймер сразу тикал)
+        window.addEventListener('load', () => {
+            // установим стартовые значения: 1 минута, работает
+            currentMinutes = 1;
+            timeLeftSeconds = 60;
+            isRunning = true;
+            isPaused = false;
+            pauseBtn.innerText = '⏸ Пауза';
+            updateDisplay();
+            startTimerIfNeeded();
+
+            // предзагрузим статистику на сегодня (рендер не пока панель скрыта)
+            renderStatsPanel(); // для внутренних данных
+        });
+
+        // при уходе со страницы остановим интервал (гигиена)
+        window.addEventListener('beforeunload', () => {
+            stopTimer();
+        });
+    })();
+</script>
+</body>
+</html>
