@@ -5,15 +5,16 @@
     const MAX_MINUTES = 30;
 
     // ----- СОСТОЯНИЕ
-    let currentMinutes = 1;              // стартуем с 1
-    let timeLeftSeconds = currentMinutes * 60; // оставшиеся секунды
+    let currentMinutes = 1;
+    let timeLeftSeconds = currentMinutes * 60;
     let timerInterval = null;
     let isPaused = false;
-    let isRunning = false;                // false если остановлен (не пауза)
+    let isRunning = false;
 
     // звуки
     let tickAudio = null;
     let finishAudio = null;
+    let audioInitialized = false; // флаг инициализации звуков
 
     // DOM элементы
     const minutesDisplayEl = document.getElementById('minutesDisplay');
@@ -32,33 +33,73 @@
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ЗВУКОВ ----------
     function initSounds() {
+        if (audioInitialized) return; // уже инициализированы
+        
         try {
-            // тиканье – короткий цикл
+            console.log('Инициализация звуков...');
+            
+            // Создаем звук тиканья
             tickAudio = new Audio();
-            tickAudio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA=='; // очень короткий тик
-            tickAudio.volume = 0.25;
-
+            tickAudio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+            tickAudio.volume = 0.3;
+            tickAudio.preload = 'auto';
+            
+            // Создаем звук окончания
             finishAudio = new Audio();
-            finishAudio.src = 'data:audio/wav;base64,UklGRqQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YXAAAABAQEAAPz8/QUFBRERERISEhIXFxcZGRkcHBwfHx8iIiIlJSUpKSktLS0xMTE2NjY7OztBQUFHR0dNTU1UVFRbW1tjY2tsbGx2dnZ/f3+JiYmTk5OcnJympqavr6+4uLjBwcHKysrT09Pb29vk5OTs7Oz09PT8/Pz8/PT07Ozs5OTk29vb09PTy8vLwsLCubm5sbGxqKion5+fl5eXj4+Ph4eHe3t7c3Nza2trZGRkXV1dVVVVTU1NRUVFPT09OTk5Nzc3MjIyLS0tKSkpJSUlISEhHh4eHBwcGRkZFhYWEhISDw8PCwsLBwcHAwMDAQI='; // простой сигнал
-            finishAudio.volume = 0.5;
+            finishAudio.src = 'data:audio/wav;base64,UklGRqQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YXAAAABAQEAAPz8/QUFBRERERISEhIXFxcZGRkcHBwfHx8iIiIlJSUpKSktLS0xMTE2NjY7OztBQUFHR0dNTU1UVFRbW1tjY2tsbGx2dnZ/f3+JiYmTk5OcnJympqavr6+4uLjBwcHKysrT09Pb29vk5OTs7Oz09PT8/Pz8/PT07Ozs5OTk29vb09PTy8vLwsLCubm5sbGxqKion5+fl5eXj4+Ph4eHe3t7c3Nza2trZGRkXV1dVVVVTU1NRUVFPT09OTk5Nzc3MjIyLS0tKSkpJSUlISEhHh4eHBwcGRkZFhYWEhISDw8PCwsLBwcHAwMDAQI=';
+            finishAudio.volume = 0.7;
+            finishAudio.preload = 'auto';
+            
+            // Пробуем воспроизвести и сразу ставим на паузу для разблокировки
+            const playPromise = tickAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    tickAudio.pause();
+                    tickAudio.currentTime = 0;
+                    console.log('Звуки инициализированы');
+                    audioInitialized = true;
+                }).catch(error => {
+                    console.log('Звуки будут доступны после клика');
+                });
+            }
         } catch (e) {
             console.warn('Аудио не поддерживается', e);
         }
     }
 
-    // играть тик
-    function playTick() {
-        if (tickAudio) {
-            tickAudio.currentTime = 0;
-            tickAudio.play().catch(e => { /* игнорируем если нельзя */ });
+    // Воспроизведение звука с проверкой инициализации
+    function playSound(audio) {
+        if (!audio) return;
+        
+        try {
+            // Если звуки еще не инициализированы, пробуем инициализировать
+            if (!audioInitialized) {
+                initSounds();
+            }
+            
+            // Создаем копию звука для воспроизведения (обход ограничений)
+            const soundCopy = new Audio();
+            soundCopy.src = audio.src;
+            soundCopy.volume = audio.volume;
+            
+            const playPromise = soundCopy.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log('Воспроизведение звука возможно только после взаимодействия со страницей');
+                });
+            }
+        } catch (e) {
+            console.warn('Ошибка воспроизведения звука', e);
         }
     }
 
+    // играть тик
+    function playTick() {
+        playSound(tickAudio);
+    }
+
     function playFinish() {
-        if (finishAudio) {
-            finishAudio.currentTime = 0;
-            finishAudio.play().catch(e => console.log('звук финиша заблокирован браузером'));
-        }
+        playSound(finishAudio);
     }
 
     // ---------- РАБОТА С LOCALSTORAGE ----------
@@ -88,15 +129,14 @@
         const key = getTodayKey();
         if (!stats[key]) {
             stats[key] = {
-                totalSeconds: 0,     // отработанные секунды (завершённые таймеры)
+                totalSeconds: 0,
                 timersCompleted: 0,
-                lastTimerMinutes: 0,  // последний таймер (минуты)
+                lastTimerMinutes: 0,
             };
         }
         return { stats, key, todayData: stats[key] };
     }
 
-    // Обновить статистику: добавить завершённый таймер длиной minutes
     function addCompletedTimer(minutes) {
         const { stats, key, todayData } = getTodayStats();
         todayData.totalSeconds = (todayData.totalSeconds || 0) + minutes * 60;
@@ -130,19 +170,16 @@
         progressLabelEl.innerText = `${currentMinutes} / 30`;
     }
 
-    // Завершение таймера (звук, логика)
     function finishTimer() {
+        console.log('Таймер завершен, играем звук');
         playFinish();
 
-        // записываем завершённый таймер в статистику
         addCompletedTimer(currentMinutes);
 
-        // автоматический переход на следующий, если не 30
         if (currentMinutes < MAX_MINUTES) {
             currentMinutes++;
-            resetTimerToCurrent(/* restartAfterFinish = true */);
+            resetTimerToCurrent(true);
         } else {
-            // если дошли до 30 — останавливаем
             stopTimer();
             timeLeftSeconds = currentMinutes * 60;
             isRunning = false;
@@ -152,28 +189,24 @@
         }
     }
 
-    // ТИК таймера
     function tick() {
         if (!isRunning || isPaused) return;
 
         if (timeLeftSeconds <= 0) {
-            // время вышло
             finishTimer();
         } else {
             timeLeftSeconds--;
-            playTick();             // тиканье каждую секунду
+            playTick();
             updateDisplay();
         }
     }
 
-    // СТАРТ (запускает интервал, если ещё не запущен)
     function startTimerIfNeeded() {
         if (!timerInterval) {
             timerInterval = setInterval(tick, TICK_INTERVAL);
         }
     }
 
-    // Остановить интервал
     function stopTimer() {
         if (timerInterval) {
             clearInterval(timerInterval);
@@ -181,7 +214,6 @@
         }
     }
 
-    // Сбросить таймер до текущей минуты (currentMinutes) без запуска
     function resetTimerToCurrent(autoplay = false) {
         stopTimer();
         timeLeftSeconds = currentMinutes * 60;
@@ -194,22 +226,18 @@
         }
     }
 
-    // Обновление состояния кнопок
     function updateButtonStates() {
         if (isRunning && !isPaused) {
-            // Таймер активен
             startBtn.disabled = true;
             pauseBtn.disabled = false;
             restartBtn.disabled = false;
             pauseBtn.innerText = '⏸ Пауза';
         } else if (isRunning && isPaused) {
-            // Таймер на паузе
             startBtn.disabled = true;
             pauseBtn.disabled = false;
             restartBtn.disabled = false;
             pauseBtn.innerText = '▶ Продолжить';
         } else {
-            // Таймер остановлен
             startBtn.disabled = false;
             pauseBtn.disabled = true;
             restartBtn.disabled = true;
@@ -218,8 +246,12 @@
     }
 
     // ---------- ОБРАБОТЧИКИ ----------
-    // Старт
     startBtn.addEventListener('click', () => {
+        // Инициализируем звуки при первом клике
+        if (!audioInitialized) {
+            initSounds();
+        }
+        
         if (!isRunning) {
             isRunning = true;
             isPaused = false;
@@ -229,23 +261,19 @@
         }
     });
 
-    // пауза/продолжить
     pauseBtn.addEventListener('click', () => {
         if (!isRunning) return;
 
         if (isPaused) {
-            // продолжить
             isPaused = false;
             startTimerIfNeeded();
         } else {
-            // поставить на паузу
             isPaused = true;
             stopTimer();
         }
         updateButtonStates();
     });
 
-    // Сброс (до 1 минуты)
     resetBtn.addEventListener('click', () => {
         stopTimer();
         currentMinutes = 1;
@@ -256,7 +284,6 @@
         updateButtonStates();
     });
 
-    // Заново (перезапуск текущего таймера)
     restartBtn.addEventListener('click', () => {
         if (!isRunning) return;
         
@@ -269,7 +296,6 @@
         updateButtonStates();
     });
 
-    // Следующий: увеличиваем на 1 (до 30) и останавливаем
     nextBtn.addEventListener('click', () => {
         stopTimer();
         
@@ -284,7 +310,6 @@
         updateButtonStates();
     });
 
-    // Показать/скрыть статистику
     statBtn.addEventListener('click', () => {
         if (statsPanel.style.display === 'none') {
             renderStatsPanel();
@@ -294,21 +319,14 @@
         }
     });
 
-    // инициализация при загрузке
-    updateDisplay();
-    initSounds();
-
-    // Чтобы звуки работали после первого клика (из-за политик автовоспроизведения)
-    function enableAudioOnFirstInteraction() {
-        const silentTick = new Audio();
-        silentTick.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
-        silentTick.volume = 0.01;
-        silentTick.play().then(() => { silentTick.pause(); }).catch(() => {});
+    // Функция для принудительной инициализации звуков
+    function forceInitSounds() {
+        if (!audioInitialized) {
+            initSounds();
+        }
     }
 
-    document.body.addEventListener('click', enableAudioOnFirstInteraction, { once: true });
-
-    // При загрузке страницы таймер не запущен
+    // Инициализация при загрузке (без звуков)
     window.addEventListener('load', () => {
         currentMinutes = 1;
         timeLeftSeconds = 60;
@@ -317,9 +335,38 @@
         updateDisplay();
         updateButtonStates();
         renderStatsPanel();
+        
+        // Создаем звуки, но не играем их
+        try {
+            tickAudio = new Audio();
+            tickAudio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+            tickAudio.volume = 0.3;
+            tickAudio.load();
+            
+            finishAudio = new Audio();
+            finishAudio.src = 'data:audio/wav;base64,UklGRqQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YXAAAABAQEAAPz8/QUFBRERERISEhIXFxcZGRkcHBwfHx8iIiIlJSUpKSktLS0xMTE2NjY7OztBQUFHR0dNTU1UVFRbW1tjY2tsbGx2dnZ/f3+JiYmTk5OcnJympqavr6+4uLjBwcHKysrT09Pb29vk5OTs7Oz09PT8/Pz8/PT07Ozs5OTk29vb09PTy8vLwsLCubm5sbGxqKion5+fl5eXj4+Ph4eHe3t7c3Nza2trZGRkXV1dVVVVTU1NRUVFPT09OTk5Nzc3MjIyLS0tKSkpJSUlISEhHh4eHBwcGRkZFhYWEhISDw8PCwsLBwcHAwMDAQI=';
+            finishAudio.volume = 0.7;
+            finishAudio.load();
+        } catch (e) {
+            console.warn('Ошибка загрузки звуков', e);
+        }
     });
 
-    // при уходе со страницы остановим интервал
+    // Обработчики кликов для инициализации звуков
+    document.body.addEventListener('click', function initOnClick() {
+        if (!audioInitialized) {
+            console.log('Инициализация звуков по клику');
+            initSounds();
+        }
+    }, { once: true });
+
+    // Также инициализируем при наведении на таймер (для удобства)
+    document.querySelector('.timer-block').addEventListener('mouseenter', function() {
+        if (!audioInitialized) {
+            initSounds();
+        }
+    }, { once: true });
+
     window.addEventListener('beforeunload', () => {
         stopTimer();
     });
