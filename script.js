@@ -18,6 +18,7 @@
     // DOM элементы
     const minutesDisplayEl = document.getElementById('minutesDisplay');
     const progressLabelEl = document.getElementById('progressLabel');
+    const startBtn = document.getElementById('startBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     const resetBtn = document.getElementById('resetBtn');
     const restartBtn = document.getElementById('restartBtn');
@@ -141,12 +142,12 @@
             currentMinutes++;
             resetTimerToCurrent(/* restartAfterFinish = true */);
         } else {
-            // если дошли до 30 — просто сброс на 1? но по логике автоперехода нет, остановим.
+            // если дошли до 30 — останавливаем
             stopTimer();
             timeLeftSeconds = currentMinutes * 60;
             isRunning = false;
             isPaused = false;
-            pauseBtn.innerText = '⏸ Пауза';
+            updateButtonStates();
             updateDisplay();
         }
     }
@@ -172,7 +173,7 @@
         }
     }
 
-    // Остановить интервал (но не сбрасывать флаги)
+    // Остановить интервал
     function stopTimer() {
         if (timerInterval) {
             clearInterval(timerInterval);
@@ -180,49 +181,68 @@
         }
     }
 
-    // Сбросить таймер до текущей минуты (currentMinutes) и запустить
-    function resetTimerToCurrent(autoplay = true) {
+    // Сбросить таймер до текущей минуты (currentMinutes) без запуска
+    function resetTimerToCurrent(autoplay = false) {
         stopTimer();
         timeLeftSeconds = currentMinutes * 60;
         isPaused = false;
-        isRunning = autoplay;  // если автоплей то запускаем
-        pauseBtn.innerText = '⏸ Пауза';
+        isRunning = autoplay;
         updateDisplay();
+        updateButtonStates();
         if (autoplay) {
             startTimerIfNeeded();
         }
     }
 
-    // Принудительно обновить кнопку паузы
-    function updatePauseButton() {
-        pauseBtn.innerText = isPaused ? '▶ Продолжить' : '⏸ Пауза';
+    // Обновление состояния кнопок
+    function updateButtonStates() {
+        if (isRunning && !isPaused) {
+            // Таймер активен
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            restartBtn.disabled = false;
+            pauseBtn.innerText = '⏸ Пауза';
+        } else if (isRunning && isPaused) {
+            // Таймер на паузе
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            restartBtn.disabled = false;
+            pauseBtn.innerText = '▶ Продолжить';
+        } else {
+            // Таймер остановлен
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            restartBtn.disabled = true;
+            pauseBtn.innerText = '⏸ Пауза';
+        }
     }
 
     // ---------- ОБРАБОТЧИКИ ----------
-    // пауза/продолжить
-    pauseBtn.addEventListener('click', () => {
+    // Старт
+    startBtn.addEventListener('click', () => {
         if (!isRunning) {
-            // если таймер стоял (не на паузе, а именно остановлен) — запускаем как сброс?
-            // сделаем запуск текущего значения.
             isRunning = true;
             isPaused = false;
             startTimerIfNeeded();
             updateDisplay();
-            updatePauseButton();
-            return;
+            updateButtonStates();
         }
+    });
+
+    // пауза/продолжить
+    pauseBtn.addEventListener('click', () => {
+        if (!isRunning) return;
 
         if (isPaused) {
             // продолжить
             isPaused = false;
-            startTimerIfNeeded(); // интервал точно есть, но на всякий случай
+            startTimerIfNeeded();
         } else {
             // поставить на паузу
             isPaused = true;
-            stopTimer(); // останавливаем интервал, чтобы не тикал впустую
-            timerInterval = null; // пересоздадим при надобности
+            stopTimer();
         }
-        updatePauseButton();
+        updateButtonStates();
     });
 
     // Сброс (до 1 минуты)
@@ -230,38 +250,38 @@
         stopTimer();
         currentMinutes = 1;
         timeLeftSeconds = 60;
-        isRunning = true;      // автоматом запускаем
+        isRunning = false;
         isPaused = false;
-        pauseBtn.innerText = '⏸ Пауза';
         updateDisplay();
-        startTimerIfNeeded();
+        updateButtonStates();
     });
 
     // Заново (перезапуск текущего таймера)
     restartBtn.addEventListener('click', () => {
+        if (!isRunning) return;
+        
         stopTimer();
         timeLeftSeconds = currentMinutes * 60;
         isRunning = true;
         isPaused = false;
-        pauseBtn.innerText = '⏸ Пауза';
         updateDisplay();
         startTimerIfNeeded();
+        updateButtonStates();
     });
 
-    // Следующий: увеличиваем на 1 (до 30) и стартуем
+    // Следующий: увеличиваем на 1 (до 30) и останавливаем
     nextBtn.addEventListener('click', () => {
+        stopTimer();
+        
         if (currentMinutes < MAX_MINUTES) {
             currentMinutes++;
-        } else {
-            // если уже 30, остаёмся на 30
         }
-        stopTimer();
+        
         timeLeftSeconds = currentMinutes * 60;
-        isRunning = true;
+        isRunning = false;
         isPaused = false;
-        pauseBtn.innerText = '⏸ Пауза';
         updateDisplay();
-        startTimerIfNeeded();
+        updateButtonStates();
     });
 
     // Показать/скрыть статистику
@@ -280,32 +300,26 @@
 
     // Чтобы звуки работали после первого клика (из-за политик автовоспроизведения)
     function enableAudioOnFirstInteraction() {
-        // просто создадим пустую и сыграем/остановим, чтобы контекст разрешился
         const silentTick = new Audio();
         silentTick.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
         silentTick.volume = 0.01;
         silentTick.play().then(() => { silentTick.pause(); }).catch(() => {});
-        // и настоящие тоже готовы
     }
 
     document.body.addEventListener('click', enableAudioOnFirstInteraction, { once: true });
 
-    // старт по умолчанию при открытии страницы (чтобы таймер сразу тикал)
+    // При загрузке страницы таймер не запущен
     window.addEventListener('load', () => {
-        // установим стартовые значения: 1 минута, работает
         currentMinutes = 1;
         timeLeftSeconds = 60;
-        isRunning = true;
+        isRunning = false;
         isPaused = false;
-        pauseBtn.innerText = '⏸ Пауза';
         updateDisplay();
-        startTimerIfNeeded();
-
-        // предзагрузим статистику на сегодня (рендер не пока панель скрыта)
-        renderStatsPanel(); // для внутренних данных
+        updateButtonStates();
+        renderStatsPanel();
     });
 
-    // при уходе со страницы остановим интервал (гигиена)
+    // при уходе со страницы остановим интервал
     window.addEventListener('beforeunload', () => {
         stopTimer();
     });
