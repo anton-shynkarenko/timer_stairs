@@ -2,11 +2,13 @@
     // ----- КОНФИГ
     const STORAGE_KEY = 'focus_ladder_stats';
     const CURRENT_MINUTE_KEY = 'focus_ladder_current_minute';
+    const LAST_COMPLETED_KEY = 'focus_ladder_last_completed';
     const TICK_INTERVAL = 1000;
     const MAX_MINUTES = 30;
 
     // ----- СОСТОЯНИЕ
     let currentMinutes = 1;
+    let lastCompletedMinute = 0;
     let timeLeftSeconds = currentMinutes * 60;
     let timerInterval = null;
     let isPaused = false;
@@ -20,11 +22,10 @@
     // DOM элементы
     const minutesDisplayEl = document.getElementById('minutesDisplay');
     const progressLabelEl = document.getElementById('progressLabel');
-    const startBtn = document.getElementById('startBtn');
     const pauseBtn = document.getElementById('pauseBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const restartBtn = document.getElementById('restartBtn');
+    const startRestartBtn = document.getElementById('startRestartBtn');
     const nextBtn = document.getElementById('nextBtn');
+    const resetBtn = document.getElementById('resetBtn');
     const statBtn = document.getElementById('statBtn');
     const statsPanel = document.getElementById('statsPanel');
     const todayDateSpan = document.getElementById('todayDate');
@@ -32,44 +33,48 @@
     const totalTimersDisplay = document.getElementById('totalTimersDisplay');
     const lastTimerDisplay = document.getElementById('lastTimerDisplay');
 
-    // ---------- ЗАГРУЗКА И СОХРАНЕНИЕ ТЕКУЩЕЙ МИНУТЫ ----------
-    function loadCurrentMinute() {
+    // ---------- ЗАГРУЗКА И СОХРАНЕНИЕ СОСТОЯНИЯ ----------
+    function loadState() {
         try {
-            const saved = localStorage.getItem(CURRENT_MINUTE_KEY);
-            if (saved) {
-                const parsed = parseInt(saved, 10);
+            // Загружаем текущую минуту
+            const savedMinute = localStorage.getItem(CURRENT_MINUTE_KEY);
+            if (savedMinute) {
+                const parsed = parseInt(savedMinute, 10);
                 if (!isNaN(parsed) && parsed >= 1 && parsed <= MAX_MINUTES) {
                     currentMinutes = parsed;
-                    console.log('Загружена минута из localStorage:', currentMinutes);
                 }
             }
+
+            // Загружаем последнюю завершённую минуту
+            const savedCompleted = localStorage.getItem(LAST_COMPLETED_KEY);
+            if (savedCompleted) {
+                const parsed = parseInt(savedCompleted, 10);
+                if (!isNaN(parsed) && parsed >= 0 && parsed <= MAX_MINUTES) {
+                    lastCompletedMinute = parsed;
+                }
+            }
+
+            console.log(`Загружено: текущая ${currentMinutes}, завершено ${lastCompletedMinute}`);
         } catch (e) {
-            console.warn('Ошибка загрузки текущей минуты', e);
+            console.warn('Ошибка загрузки состояния', e);
         }
     }
 
-    function saveCurrentMinute() {
+    function saveState() {
         try {
             localStorage.setItem(CURRENT_MINUTE_KEY, currentMinutes.toString());
-            console.log('Сохранена минута в localStorage:', currentMinutes);
+            localStorage.setItem(LAST_COMPLETED_KEY, lastCompletedMinute.toString());
         } catch (e) {
-            console.warn('Ошибка сохранения текущей минуты', e);
+            console.warn('Ошибка сохранения состояния', e);
         }
     }
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ЗВУКОВ ----------
     function initSounds() {
         if (audioInitialized) return;
-
         try {
-            console.log('Инициализация звуков...');
-
-            // Тиканье (через Audio)
             createTickSound();
-
-            // Фанфары (через Web Audio)
             createFanfareSound();
-
             audioInitialized = true;
         } catch (e) {
             console.warn('Ошибка инициализации звуков', e);
@@ -82,10 +87,8 @@
             const originalTick = new Audio();
             originalTick.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
             originalTick.volume = 0.2;
-
             tickAudio = function() {
-                const tick = originalTick.cloneNode();
-                tick.play().catch(() => {});
+                originalTick.cloneNode().play().catch(() => {});
             };
         } catch (e) {
             tickAudio = function() {};
@@ -96,56 +99,23 @@
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const audioContext = new AudioContext();
-
             finishAudio = function() {
                 if (audioContext.state === 'suspended') audioContext.resume();
-
                 const now = audioContext.currentTime;
-
-                const osc1 = audioContext.createOscillator();
-                const gain1 = audioContext.createGain();
-                osc1.type = 'sine';
-                osc1.frequency.value = 523.25;
-                gain1.gain.setValueAtTime(0.2, now);
-                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                osc1.connect(gain1);
-                gain1.connect(audioContext.destination);
-
-                const osc2 = audioContext.createOscillator();
-                const gain2 = audioContext.createGain();
-                osc2.type = 'sine';
-                osc2.frequency.value = 659.25;
-                gain2.gain.setValueAtTime(0.2, now + 0.15);
-                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-                osc2.connect(gain2);
-                gain2.connect(audioContext.destination);
-
-                const osc3 = audioContext.createOscillator();
-                const gain3 = audioContext.createGain();
-                osc3.type = 'sine';
-                osc3.frequency.value = 783.99;
-                gain3.gain.setValueAtTime(0.2, now + 0.3);
-                gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                osc3.connect(gain3);
-                gain3.connect(audioContext.destination);
-
-                const osc4 = audioContext.createOscillator();
-                const gain4 = audioContext.createGain();
-                osc4.type = 'sine';
-                osc4.frequency.value = 1046.5;
-                gain4.gain.setValueAtTime(0.25, now + 0.45);
-                gain4.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
-                osc4.connect(gain4);
-                gain4.connect(audioContext.destination);
-
-                osc1.start(now);
-                osc1.stop(now + 0.2);
-                osc2.start(now + 0.15);
-                osc2.stop(now + 0.35);
-                osc3.start(now + 0.3);
-                osc3.stop(now + 0.5);
-                osc4.start(now + 0.45);
-                osc4.stop(now + 0.7);
+                
+                const notes = [523.25, 659.25, 783.99, 1046.5];
+                notes.forEach((freq, i) => {
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.2, now + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.start(now + i * 0.15);
+                    osc.stop(now + i * 0.15 + 0.2);
+                });
             };
         } catch (e) {
             createFallbackFinish();
@@ -172,14 +142,14 @@
     }
 
     function playTick() {
-        if (tickAudio && typeof tickAudio === 'function') tickAudio();
+        if (tickAudio) tickAudio();
     }
 
     function playFinish() {
-        if (finishAudio && typeof finishAudio === 'function') finishAudio();
+        if (finishAudio) finishAudio();
     }
 
-    // ---------- LOCALSTORAGE ДЛЯ СТАТИСТИКИ ----------
+    // ---------- СТАТИСТИКА ----------
     function getTodayKey() {
         const now = new Date();
         return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -187,14 +157,7 @@
 
     function loadStats() {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            try {
-                return JSON.parse(stored);
-            } catch (e) {
-                return {};
-            }
-        }
-        return {};
+        return stored ? JSON.parse(stored) : {};
     }
 
     function saveStats(stats) {
@@ -253,26 +216,25 @@
     }
 
     function finishTimer() {
-        console.log('Таймер завершён');
         if (!audioInitialized) initSounds();
         playFinish();
         showFinishNotification();
 
-        // Сохраняем статистику (текущая минута завершена)
+        // Записываем завершённую минуту
         addCompletedTimer(currentMinutes);
+        lastCompletedMinute = currentMinutes;
+        saveState();
 
-        // Таймер останавливается, минута НЕ увеличивается
         stopTimer();
         isRunning = false;
         isPaused = false;
-        timeLeftSeconds = currentMinutes * 60; // сброс до полной минуты
+        timeLeftSeconds = currentMinutes * 60;
         updateDisplay();
         updateButtonStates();
     }
 
     function tick() {
         if (!isRunning || isPaused) return;
-
         if (timeLeftSeconds <= 0) {
             finishTimer();
         } else {
@@ -295,79 +257,87 @@
         }
     }
 
-    function resetToCurrent(autoplay = false) {
-        stopTimer();
-        timeLeftSeconds = currentMinutes * 60;
-        isPaused = false;
-        isRunning = autoplay;
-        updateDisplay();
-        updateButtonStates();
-        if (autoplay) startTimerIfNeeded();
-    }
-
+    // ---------- ЛОГИКА КНОПОК (ОБНОВЛЕНО) ----------
     function updateButtonStates() {
+        const isCompleted = (lastCompletedMinute === currentMinutes);
+        
         if (isRunning && !isPaused) {
-            startBtn.disabled = true;
+            // Таймер идёт
             pauseBtn.disabled = false;
-            restartBtn.disabled = false;
             pauseBtn.innerText = '⏸ Пауза';
-        } else if (isRunning && isPaused) {
-            startBtn.disabled = true;
+            startRestartBtn.disabled = true;
+            startRestartBtn.innerText = '▶ Начать';
+            nextBtn.disabled = true;
+            resetBtn.disabled = true;
+        } 
+        else if (isRunning && isPaused) {
+            // Таймер на паузе
             pauseBtn.disabled = false;
-            restartBtn.disabled = false;
             pauseBtn.innerText = '▶ Продолжить';
-        } else {
-            startBtn.disabled = false;
+            startRestartBtn.disabled = true;
+            startRestartBtn.innerText = '▶ Начать';
+            nextBtn.disabled = false;
+            resetBtn.disabled = false;
+        }
+        else if (isCompleted) {
+            // Таймер завершён (можно заново или следующий)
             pauseBtn.disabled = true;
-            restartBtn.disabled = false;
             pauseBtn.innerText = '⏸ Пауза';
+            startRestartBtn.disabled = false;
+            startRestartBtn.innerText = '↺ Заново';
+            nextBtn.disabled = false;
+            resetBtn.disabled = false;
+        }
+        else {
+            // Таймер не запущен (новая минута)
+            pauseBtn.disabled = true;
+            pauseBtn.innerText = '⏸ Пауза';
+            startRestartBtn.disabled = false;
+            startRestartBtn.innerText = '▶ Начать';
+            nextBtn.disabled = true;
+            resetBtn.disabled = false;
         }
     }
 
-    // ---------- СОБЫТИЯ КНОПОК ----------
-    startBtn.addEventListener('click', () => {
-        if (!audioInitialized) initSounds();
-        if (!isRunning) {
-            isRunning = true;
-            isPaused = false;
-            startTimerIfNeeded();
-            updateButtonStates();
-        }
-    });
-
+    // ---------- ОБРАБОТЧИКИ ----------
     pauseBtn.addEventListener('click', () => {
         if (!isRunning) return;
+        
         if (isPaused) {
+            // Продолжить
             isPaused = false;
             startTimerIfNeeded();
         } else {
+            // Пауза
             isPaused = true;
             stopTimer();
         }
         updateButtonStates();
     });
 
-    resetBtn.addEventListener('click', () => {
-        stopTimer();
-        currentMinutes = 1;
-        timeLeftSeconds = 60;
-        isRunning = false;
-        isPaused = false;
-        updateDisplay();
-        updateButtonStates();
-        saveCurrentMinute(); // Сохраняем новое значение
-    });
-
-    restartBtn.addEventListener('click', () => {
-        stopTimer();
-        timeLeftSeconds = currentMinutes * 60;
-        isRunning = false;
-        isPaused = false;
-        updateDisplay();
+    startRestartBtn.addEventListener('click', () => {
+        if (!audioInitialized) initSounds();
+        
+        if (lastCompletedMinute === currentMinutes) {
+            // Режим "Заново" - перезапустить завершённую минуту
+            stopTimer();
+            timeLeftSeconds = currentMinutes * 60;
+            isRunning = true;
+            isPaused = false;
+            updateDisplay();
+            startTimerIfNeeded();
+        } else {
+            // Режим "Начать" - запустить новую минуту
+            isRunning = true;
+            isPaused = false;
+            startTimerIfNeeded();
+        }
         updateButtonStates();
     });
 
     nextBtn.addEventListener('click', () => {
+        if (lastCompletedMinute !== currentMinutes) return; // Нельзя перейти, пока не завершена
+        
         stopTimer();
         if (currentMinutes < MAX_MINUTES) {
             currentMinutes++;
@@ -375,9 +345,22 @@
         timeLeftSeconds = currentMinutes * 60;
         isRunning = false;
         isPaused = false;
+        // lastCompletedMinute остаётся предыдущей (новая минута не завершена)
         updateDisplay();
+        saveState();
         updateButtonStates();
-        saveCurrentMinute(); // Сохраняем новое значение
+    });
+
+    resetBtn.addEventListener('click', () => {
+        stopTimer();
+        currentMinutes = 1;
+        lastCompletedMinute = 0; // Сбрасываем прогресс
+        timeLeftSeconds = 60;
+        isRunning = false;
+        isPaused = false;
+        updateDisplay();
+        saveState();
+        updateButtonStates();
     });
 
     statBtn.addEventListener('click', () => {
@@ -389,30 +372,22 @@
         }
     });
 
-    // ---------- СТАРТОВАЯ ИНИЦИАЛИЗАЦИЯ ----------
+    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     window.addEventListener('load', () => {
-        // Загружаем сохраненную минуту
-        loadCurrentMinute();
-        
-        // Устанавливаем время в соответствии с загруженной минутой
+        loadState();
         timeLeftSeconds = currentMinutes * 60;
-        
         isRunning = false;
         isPaused = false;
         updateDisplay();
         updateButtonStates();
         renderStatsPanel();
-        
-        console.log('Инициализация завершена, текущая минута:', currentMinutes);
     });
 
-    // Сохраняем минуту перед уходом со страницы
     window.addEventListener('beforeunload', () => {
         stopTimer();
-        saveCurrentMinute();
+        saveState();
     });
 
-    // Активация звуков при первом взаимодействии
     document.body.addEventListener('click', () => {
         if (!audioInitialized) initSounds();
     }, { once: true });
