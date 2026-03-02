@@ -114,6 +114,20 @@ body {
     box-shadow: 0 2px 0 #5f707c, 0 5px 10px black;
 }
 
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 8px 0 #768a96, 0 8px 15px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+.btn.start {
+    background: #4caf50;
+    color: white;
+    box-shadow: 0 8px 0 #2d6a2f;
+}
+
 .btn.pause {
     background: #ffe3b0;
     box-shadow: 0 8px 0 #b6895e;
@@ -198,4 +212,4 @@ footer {
     margin-top: 20px;
     text-align: center;
     font-size: 0.9rem;
-  }
+}
