@@ -10,14 +10,15 @@
     <div class="card">
         <div class="timer-block">
             <div class="stage">🌀 ступень концентрации</div>
-            <div class="minutes-display" id="minutesDisplay">01 <span>мин</span></div>
+            <div class="minutes-display" id="minutesDisplay">01 <span>мин</span> 00с</div>
             <div style="display: flex; justify-content: center;">
                 <div class="progress-tag" id="progressLabel">1 / 30</div>
             </div>
             <div class="button-panel">
+                <button class="btn start" id="startBtn">▶ Старт</button>
+                <button class="btn pause" id="pauseBtn" disabled>⏸ Пауза</button>
                 <button class="btn reset" id="resetBtn" title="Сбросить до 1 минуты">↺ Сброс</button>
-                <button class="btn pause" id="pauseBtn">⏸ Пауза</button>
-                <button class="btn" id="restartBtn" title="Перезапустить текущий таймер">🔄 Заново</button>
+                <button class="btn" id="restartBtn" title="Перезапустить текущий таймер" disabled>🔄 Заново</button>
                 <button class="btn next" id="nextBtn">▶ Следующий</button>
                 <button class="btn stat" id="statBtn">📊 Статистика</button>
             </div>
