@@ -48,6 +48,7 @@ body {
 }
 
 .minutes-display {
+.minutes-display {
     font-size: 8rem;
     font-weight: 800;
     text-align: center;
@@ -59,13 +60,9 @@ body {
     letter-spacing: 4px;
 }
 
+/* Убираем старый стиль для span, он больше не нужен */
 .minutes-display span {
-    font-size: 2rem;
-    opacity: 0.8;
-    margin-left: 8px;
-    font-weight: 400;
-    text-shadow: none;
-    color: #bbdef5;
+    display: none;
 }
 
 .progress-tag {
