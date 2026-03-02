@@ -258,46 +258,47 @@
     }
 
     // ---------- ЛОГИКА КНОПОК (ОБНОВЛЕНО) ----------
-    function updateButtonStates() {
-        const isCompleted = (lastCompletedMinute === currentMinutes);
-        
-        if (isRunning && !isPaused) {
-            // Таймер идёт
-            pauseBtn.disabled = false;
-            pauseBtn.innerText = '⏸ Пауза';
-            startRestartBtn.disabled = true;
-            startRestartBtn.innerText = '▶ Начать';
-            nextBtn.disabled = true;
-            resetBtn.disabled = true;
-        } 
-        else if (isRunning && isPaused) {
-            // Таймер на паузе
-            pauseBtn.disabled = false;
-            pauseBtn.innerText = '▶ Продолжить';
-            startRestartBtn.disabled = true;
-            startRestartBtn.innerText = '▶ Начать';
-            nextBtn.disabled = false;
-            resetBtn.disabled = false;
-        }
-        else if (isCompleted) {
-            // Таймер завершён (можно заново или следующий)
-            pauseBtn.disabled = true;
-            pauseBtn.innerText = '⏸ Пауза';
-            startRestartBtn.disabled = false;
-            startRestartBtn.innerText = '↺ Заново';
-            nextBtn.disabled = false;
-            resetBtn.disabled = false;
-        }
-        else {
-            // Таймер не запущен (новая минута)
-            pauseBtn.disabled = true;
-            pauseBtn.innerText = '⏸ Пауза';
-            startRestartBtn.disabled = false;
-            startRestartBtn.innerText = '▶ Начать';
-            nextBtn.disabled = true;
-            resetBtn.disabled = false;
-        }
+    // Обновление состояния кнопок
+function updateButtonStates() {
+    const isCompleted = (lastCompletedMinute === currentMinutes);
+    
+    if (isRunning && !isPaused) {
+        // Таймер идёт
+        pauseBtn.disabled = false;
+        pauseBtn.innerText = '⏸ Пауза';
+        startRestartBtn.disabled = true;
+        startRestartBtn.innerText = '▶ Начать';
+        nextBtn.disabled = true;
+        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
+    } 
+    else if (isRunning && isPaused) {
+        // Таймер на паузе
+        pauseBtn.disabled = false;
+        pauseBtn.innerText = '▶ Продолжить';
+        startRestartBtn.disabled = true;
+        startRestartBtn.innerText = '▶ Начать';
+        nextBtn.disabled = false;
+        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
     }
+    else if (isCompleted) {
+        // Таймер завершён
+        pauseBtn.disabled = true;
+        pauseBtn.innerText = '⏸ Пауза';
+        startRestartBtn.disabled = false;
+        startRestartBtn.innerText = '↺ Заново';
+        nextBtn.disabled = false;
+        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
+    }
+    else {
+        // Таймер не запущен (новая минута)
+        pauseBtn.disabled = true;
+        pauseBtn.innerText = '⏸ Пауза';
+        startRestartBtn.disabled = false;
+        startRestartBtn.innerText = '▶ Начать';
+        nextBtn.disabled = true;
+        resetBtn.disabled = false;  // ✅ Сброс доступен всегда
+    }
+}
 
     // ---------- ОБРАБОТЧИКИ ----------
     pauseBtn.addEventListener('click', () => {
