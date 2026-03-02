@@ -34,6 +34,7 @@ body {
     box-shadow: inset 0 6px 8px rgba(0,0,0,0.5), 0 10px 20px rgba(0, 20, 30, 0.7);
     margin-bottom: 24px;
     border: 1px solid #3d7e9a;
+    transition: border 0.2s, box-shadow 0.2s;
 }
 
 .stage {
@@ -100,7 +101,7 @@ body {
     color: #0a2a36;
     box-shadow: 0 8px 0 #768a96, 0 8px 15px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    transition: 0.08s linear;
+    transition: all 0.08s linear;
     flex: 0 1 auto;
     min-width: 100px;
     border: 1px solid white;
@@ -118,8 +119,18 @@ body {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-    box-shadow: 0 8px 0 #768a96, 0 8px 15px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 0 #768a96;
     pointer-events: none;
+}
+
+.btn.pause {
+    background: #ffe3b0;
+    box-shadow: 0 8px 0 #b6895e;
+}
+
+.btn.pause:disabled {
+    opacity: 0.5;
+    box-shadow: 0 8px 0 #b6895e;
 }
 
 .btn.start {
@@ -128,17 +139,23 @@ body {
     box-shadow: 0 8px 0 #2d6a2f;
 }
 
-.btn.pause {
-    background: #ffe3b0;
-    box-shadow: 0 8px 0 #b6895e;
+.btn.start:disabled {
+    opacity: 0.5;
+    box-shadow: 0 8px 0 #2d6a2f;
 }
 
 .btn.reset {
     background: #d3dee7;
+    box-shadow: 0 8px 0 #768a96;
 }
 
 .btn.next {
     background: #b9edc7;
+    box-shadow: 0 8px 0 #58966b;
+}
+
+.btn.next:disabled {
+    opacity: 0.5;
     box-shadow: 0 8px 0 #58966b;
 }
 
@@ -213,3 +230,67 @@ footer {
     text-align: center;
     font-size: 0.9rem;
 }
+
+/* Анимация для финиша */
+@keyframes finishPulse {
+    0% { border-color: #ffaa00; box-shadow: 0 0 30px #ffaa00; }
+    50% { border-color: #ff6600; box-shadow: 0 0 50px #ff6600; }
+    100% { border-color: #ffaa00; box-shadow: 0 0 30px #ffaa00; }
+}
+
+.timer-block.finish-animation {
+    animation: finishPulse 0.5s ease-in-out;
+}
+
+/* Медиа-запросы для мобильных устройств */
+@media (max-width: 600px) {
+    .card {
+        padding: 20px 16px;
+        border-radius: 40px;
+    }
+    
+    .timer-block {
+        padding: 16px 16px 24px;
+    }
+    
+    .minutes-display {
+        font-size: 5rem;
+    }
+    
+    .minutes-display span {
+        font-size: 1.5rem;
+    }
+    
+    .btn {
+        padding: 12px 16px;
+        font-size: 1rem;
+        min-width: 80px;
+    }
+    
+    .button-panel {
+        gap: 8px;
+    }
+    
+    .stat-row {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .stat-row span:last-child {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+@media (max-width: 400px) {
+    .btn {
+        min-width: 70px;
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .minutes-display {
+        font-size: 4rem;
+    }
+    }
