@@ -1,7 +1,7 @@
 (function() {
     // ----- КОНФИГ
     const STORAGE_KEY = 'focus_ladder_stats';
-    const TICK_INTERVAL = 1000; // 1 сек
+    const TICK_INTERVAL = 1000;
     const MAX_MINUTES = 30;
 
     // ----- СОСТОЯНИЕ
@@ -33,138 +33,109 @@
 
     // ---------- ИНИЦИАЛИЗАЦИЯ ЗВУКОВ ----------
     function initSounds() {
-        if (audioInitialized) {
-            console.log('Звуки уже инициализированы');
-            return;
-        }
-        
+        if (audioInitialized) return;
+
         try {
             console.log('Инициализация звуков...');
-            
-            // Используем Audio для тиканья (предыдущий звук)
+
+            // Тиканье (через Audio)
             createTickSound();
-            
-            // Используем Web Audio API для фанфар
+
+            // Фанфары (через Web Audio)
             createFanfareSound();
-            
+
             audioInitialized = true;
-            console.log('Звуки инициализированы');
         } catch (e) {
             console.warn('Ошибка инициализации звуков', e);
             createFallbackSounds();
         }
     }
 
-    // Создание звука тиканья (предыдущий звук)
     function createTickSound() {
         try {
-            tickAudio = new Audio();
-            tickAudio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
-            tickAudio.volume = 0.2;
-            
-            // Сохраняем оригинальный объект для клонирования
-            const originalTick = tickAudio;
-            
+            const originalTick = new Audio();
+            originalTick.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+            originalTick.volume = 0.2;
+
             tickAudio = function() {
                 const tick = originalTick.cloneNode();
-                tick.volume = 0.2;
-                tick.play().catch(e => console.log('Тик заблокирован'));
+                tick.play().catch(() => {});
             };
         } catch (e) {
-            console.warn('Ошибка создания звука тиканья', e);
             tickAudio = function() {};
         }
     }
 
-    // Создание фанфар через Web Audio API
     function createFanfareSound() {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const audioContext = new AudioContext();
-            
+
             finishAudio = function() {
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
+                if (audioContext.state === 'suspended') audioContext.resume();
+
                 const now = audioContext.currentTime;
-                
-                // Создаем несколько осцилляторов для фанфар
-                
-                // Первая нота (До)
+
                 const osc1 = audioContext.createOscillator();
                 const gain1 = audioContext.createGain();
                 osc1.type = 'sine';
-                osc1.frequency.value = 523.25; // До
-                gain1.gain.value = 0.2;
+                osc1.frequency.value = 523.25;
+                gain1.gain.setValueAtTime(0.2, now);
                 gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
                 osc1.connect(gain1);
                 gain1.connect(audioContext.destination);
-                
-                // Вторая нота (Ми)
+
                 const osc2 = audioContext.createOscillator();
                 const gain2 = audioContext.createGain();
                 osc2.type = 'sine';
-                osc2.frequency.value = 659.25; // Ми
-                gain2.gain.value = 0.2;
-                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc2.frequency.value = 659.25;
+                gain2.gain.setValueAtTime(0.2, now + 0.15);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
                 osc2.connect(gain2);
                 gain2.connect(audioContext.destination);
-                
-                // Третья нота (Соль)
+
                 const osc3 = audioContext.createOscillator();
                 const gain3 = audioContext.createGain();
                 osc3.type = 'sine';
-                osc3.frequency.value = 783.99; // Соль
-                gain3.gain.value = 0.2;
-                gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc3.frequency.value = 783.99;
+                gain3.gain.setValueAtTime(0.2, now + 0.3);
+                gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                 osc3.connect(gain3);
                 gain3.connect(audioContext.destination);
-                
-                // Четвертая нота (До выше)
+
                 const osc4 = audioContext.createOscillator();
                 const gain4 = audioContext.createGain();
                 osc4.type = 'sine';
-                osc4.frequency.value = 1046.5; // До (октавой выше)
-                gain4.gain.value = 0.25;
-                gain4.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc4.frequency.value = 1046.5;
+                gain4.gain.setValueAtTime(0.25, now + 0.45);
+                gain4.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
                 osc4.connect(gain4);
                 gain4.connect(audioContext.destination);
-                
-                // Запускаем ноты с задержками для эффекта фанфар
+
                 osc1.start(now);
                 osc1.stop(now + 0.2);
-                
                 osc2.start(now + 0.15);
                 osc2.stop(now + 0.35);
-                
                 osc3.start(now + 0.3);
                 osc3.stop(now + 0.5);
-                
                 osc4.start(now + 0.45);
                 osc4.stop(now + 0.7);
             };
         } catch (e) {
-            console.warn('Ошибка создания фанфар', e);
             createFallbackFinish();
         }
     }
 
-    // Fallback для финиша (простой звук если Web Audio не работает)
     function createFallbackFinish() {
         try {
             const audio = new Audio();
             audio.src = 'data:audio/wav;base64,UklGRqQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAAACABAAZGF0YXAAAABAQEAAPz8/QUFBRERERISEhIXFxcZGRkcHBwfHx8iIiIlJSUpKSktLS0xMTE2NjY7OztBQUFHR0dNTU1UVFRbW1tjY2tsbGx2dnZ/f3+JiYmTk5OcnJympqavr6+4uLjBwcHKysrT09Pb29vk5OTs7Oz09PT8/Pz8/PT07Ozs5OTk29vb09PTy8vLwsLCubm5sbGxqKion5+fl5eXj4+Ph4eHe3t7c3Nza2trZGRkXV1dVVVVTU1NRUVFPT09OTk5Nzc3MjIyLS0tKSkpJSUlISEhHh4eHBwcGRkZFhYWEhISDw8PCwsLBwcHAwMDAQI=';
             audio.volume = 0.5;
-            
             finishAudio = function() {
-                const playPromise = audio.cloneNode().play();
-                if (playPromise) {
-                    playPromise.catch(e => console.log('Финиш заблокирован'));
-                }
+                audio.cloneNode().play().catch(() => {});
             };
         } catch (e) {
-            finishAudio = function() {}; // пустая функция
+            finishAudio = function() {};
         }
     }
 
@@ -174,26 +145,18 @@
         audioInitialized = true;
     }
 
-    // играть тик
     function playTick() {
-        if (tickAudio && typeof tickAudio === 'function') {
-            tickAudio();
-        }
+        if (tickAudio && typeof tickAudio === 'function') tickAudio();
     }
 
     function playFinish() {
-        console.log('Играем фанфары!');
-        if (finishAudio && typeof finishAudio === 'function') {
-            finishAudio();
-        } else {
-            console.warn('Звук финиша не инициализирован');
-        }
+        if (finishAudio && typeof finishAudio === 'function') finishAudio();
     }
 
-    // ---------- РАБОТА С LOCALSTORAGE ----------
+    // ---------- LOCALSTORAGE ----------
     function getTodayKey() {
         const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     }
 
     function loadStats() {
@@ -216,11 +179,7 @@
         const stats = loadStats();
         const key = getTodayKey();
         if (!stats[key]) {
-            stats[key] = {
-                totalSeconds: 0,
-                timersCompleted: 0,
-                lastTimerMinutes: 0,
-            };
+            stats[key] = { totalSeconds: 0, timersCompleted: 0, lastTimerMinutes: 0 };
         }
         return { stats, key, todayData: stats[key] };
     }
@@ -239,18 +198,16 @@
         const totalSec = todayData.totalSeconds || 0;
         const hours = Math.floor(totalSec / 3600);
         const mins = Math.floor((totalSec % 3600) / 60);
-        let timeStr = '';
-        if (hours > 0) timeStr += `${hours}ч `;
+        let timeStr = hours > 0 ? `${hours}ч ` : '';
         timeStr += `${mins}мин`;
 
         totalTimeDisplay.innerText = timeStr || '0мин';
         totalTimersDisplay.innerText = todayData.timersCompleted || 0;
-        const last = todayData.lastTimerMinutes;
-        lastTimerDisplay.innerText = last ? `${last} мин` : '—';
+        lastTimerDisplay.innerText = todayData.lastTimerMinutes ? `${todayData.lastTimerMinutes} мин` : '—';
         todayDateSpan.innerText = getTodayKey();
     }
 
-    // ---------- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ----------
+    // ---------- ТАЙМЕР ----------
     function updateDisplay() {
         const mins = Math.floor(timeLeftSeconds / 60);
         const secs = timeLeftSeconds % 60;
@@ -258,53 +215,35 @@
         progressLabelEl.innerText = `${currentMinutes} / 30`;
     }
 
-    // Визуальное уведомление о завершении
     function showFinishNotification() {
         const timerBlock = document.querySelector('.timer-block');
-        const originalBorder = timerBlock.style.border;
-        const originalBoxShadow = timerBlock.style.boxShadow;
-        
+        timerBlock.style.transition = 'border 0.2s, box-shadow 0.2s';
         timerBlock.style.border = '3px solid #ffaa00';
         timerBlock.style.boxShadow = '0 0 30px #ffaa00';
-        
         setTimeout(() => {
-            timerBlock.style.border = originalBorder || '1px solid #3d7e9a';
-            timerBlock.style.boxShadow = originalBoxShadow || 'inset 0 6px 8px rgba(0,0,0,0.5), 0 10px 20px rgba(0, 20, 30, 0.7)';
+            timerBlock.style.border = '1px solid #3d7e9a';
+            timerBlock.style.boxShadow = 'inset 0 6px 8px rgba(0,0,0,0.5), 0 10px 20px rgba(0, 20, 30, 0.7)';
         }, 500);
     }
 
     function finishTimer() {
-        console.log('Таймер завершен, играем фанфары');
-        
-        // Принудительная инициализация звуков если нужно
-        if (!audioInitialized) {
-            initSounds();
-        }
-        
-        // Воспроизводим фанфары
+        console.log('Таймер завершён');
+        if (!audioInitialized) initSounds();
         playFinish();
-        
-        // Показываем визуальное уведомление
         showFinishNotification();
-        
-        // Добавляем в статистику
+
+        // Сохраняем статистику (текущая минута завершена)
         addCompletedTimer(currentMinutes);
 
-        // Увеличиваем минуту, но НЕ ЗАПУСКАЕМ таймер автоматически
-        if (currentMinutes < MAX_MINUTES) {
-            currentMinutes++;
-        }
-        
-        // Останавливаем таймер и сбрасываем время для новой минуты
+        // Таймер останавливается, минута НЕ увеличивается
         stopTimer();
-        timeLeftSeconds = currentMinutes * 60;
         isRunning = false;
         isPaused = false;
-        updateButtonStates();
+        timeLeftSeconds = currentMinutes * 60; // сброс до полной минуты
         updateDisplay();
+        updateButtonStates();
     }
 
-    // ТИК таймера
     function tick() {
         if (!isRunning || isPaused) return;
 
@@ -317,14 +256,12 @@
         }
     }
 
-    // СТАРТ (запускает интервал, если ещё не запущен)
     function startTimerIfNeeded() {
         if (!timerInterval) {
             timerInterval = setInterval(tick, TICK_INTERVAL);
         }
     }
 
-    // Остановить интервал
     function stopTimer() {
         if (timerInterval) {
             clearInterval(timerInterval);
@@ -332,62 +269,48 @@
         }
     }
 
-    // Сбросить таймер до текущей минуты (currentMinutes) без запуска
-    function resetTimerToCurrent(autoplay = false) {
+    function resetToCurrent(autoplay = false) {
         stopTimer();
         timeLeftSeconds = currentMinutes * 60;
         isPaused = false;
         isRunning = autoplay;
         updateDisplay();
         updateButtonStates();
-        if (autoplay) {
-            startTimerIfNeeded();
-        }
+        if (autoplay) startTimerIfNeeded();
     }
 
-    // Обновление состояния кнопок
     function updateButtonStates() {
         if (isRunning && !isPaused) {
-            // Таймер активен
             startBtn.disabled = true;
             pauseBtn.disabled = false;
             restartBtn.disabled = false;
             pauseBtn.innerText = '⏸ Пауза';
         } else if (isRunning && isPaused) {
-            // Таймер на паузе
             startBtn.disabled = true;
             pauseBtn.disabled = false;
             restartBtn.disabled = false;
             pauseBtn.innerText = '▶ Продолжить';
         } else {
-            // Таймер остановлен
             startBtn.disabled = false;
             pauseBtn.disabled = true;
-            restartBtn.disabled = true;
+            restartBtn.disabled = false; // ❗ теперь «Заново» доступно всегда, когда таймер не идёт
             pauseBtn.innerText = '⏸ Пауза';
         }
     }
 
-    // ---------- ОБРАБОТЧИКИ ----------
+    // ---------- СОБЫТИЯ КНОПОК ----------
     startBtn.addEventListener('click', () => {
-        // Принудительно инициализируем звуки
-        if (!audioInitialized) {
-            console.log('Инициализация звуков по клику Start');
-            initSounds();
-        }
-        
+        if (!audioInitialized) initSounds();
         if (!isRunning) {
             isRunning = true;
             isPaused = false;
             startTimerIfNeeded();
-            updateDisplay();
             updateButtonStates();
         }
     });
 
     pauseBtn.addEventListener('click', () => {
         if (!isRunning) return;
-
         if (isPaused) {
             isPaused = false;
             startTimerIfNeeded();
@@ -408,25 +331,22 @@
         updateButtonStates();
     });
 
+    // ✅ «Заново» – перезапускает текущую минуту с нуля (даже если таймер закончился)
     restartBtn.addEventListener('click', () => {
-        if (!isRunning) return;
-        
         stopTimer();
         timeLeftSeconds = currentMinutes * 60;
-        isRunning = true;
+        isRunning = false;  // не запускаем автоматически
         isPaused = false;
         updateDisplay();
-        startTimerIfNeeded();
         updateButtonStates();
     });
 
+    // ✅ «Следующий» – увеличивает минуту и сбрасывает (не запуская)
     nextBtn.addEventListener('click', () => {
         stopTimer();
-        
         if (currentMinutes < MAX_MINUTES) {
             currentMinutes++;
         }
-        
         timeLeftSeconds = currentMinutes * 60;
         isRunning = false;
         isPaused = false;
@@ -443,7 +363,7 @@
         }
     });
 
-    // Инициализация при загрузке
+    // ---------- СТАРТОВАЯ ИНИЦИАЛИЗАЦИЯ ----------
     window.addEventListener('load', () => {
         currentMinutes = 1;
         timeLeftSeconds = 60;
@@ -452,35 +372,12 @@
         updateDisplay();
         updateButtonStates();
         renderStatsPanel();
-        
-        // Предварительно создаем AudioContext
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) {
-                const audioContext = new AudioContext();
-                console.log('AudioContext создан, состояние:', audioContext.state);
-            }
-        } catch (e) {
-            console.warn('Web Audio API не поддерживается');
-        }
     });
 
-    // Обработчики для инициализации звуков
-    document.body.addEventListener('click', function initOnClick() {
-        if (!audioInitialized) {
-            console.log('Инициализация звуков по клику на страницу');
-            initSounds();
-        }
+    // Активация звуков при первом взаимодействии
+    document.body.addEventListener('click', () => {
+        if (!audioInitialized) initSounds();
     }, { once: true });
 
-    document.querySelector('.timer-block').addEventListener('mouseenter', function() {
-        if (!audioInitialized) {
-            console.log('Инициализация звуков при наведении');
-            initSounds();
-        }
-    }, { once: true });
-
-    window.addEventListener('beforeunload', () => {
-        stopTimer();
-    });
+    window.addEventListener('beforeunload', stopTimer);
 })();
