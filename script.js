@@ -163,6 +163,10 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
     }
 
+    function resetStats() {
+        saveStats({});
+    }
+
     function getTodayStats() {
         const stats = loadStats();
         const key = getTodayKey();
@@ -373,6 +377,7 @@
         hasCurrentMinuteStarted = false;
         updateDisplay();
         saveState();
+        resetStats();
         updateButtonStates();
     });
 
