@@ -378,6 +378,7 @@
         updateDisplay();
         saveState();
         resetStats();
+        renderStatsPanel();
         updateButtonStates();
     });
 
